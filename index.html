@@ -129,68 +129,33 @@
   }
 
   // ── Audio ─────────────────────────────────────────────────────
-  let AC;
-  function ac() {
-    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
-    if (AC.state === 'suspended') AC.resume();
-    return AC;
+  let hoverAudio = null, clickAudio = null;
+  function initAudio() {
+    if (hoverAudio) return;
+    hoverAudio = new Audio('./sounds/hover.mp3');
+    hoverAudio.volume = 0.25;
+    clickAudio = new Audio('./sounds/selection.mp3');
+    clickAudio.volume = 0.42;
+  }
+  function playHover() {
+    initAudio();
+    hoverAudio.currentTime = 0;
+    hoverAudio.play().catch(() => {});
+  }
+  function playClick() {
+    initAudio();
+    clickAudio.currentTime = 0;
+    clickAudio.play().catch(() => {});
   }
 
-  const GRID_NOTES = [196, 220, 247, 262, 294, 330, 370, 392, 440, 494, 523, 587, 659, 740, 784];
-
-  let lastTick = { x: 0, y: 0 }, lastTickT = 0;
+  let lastTick = { x: 0, y: 0 }, lastTickMs = 0;
   function maybeTick(x, y) {
     const dx = x - lastTick.x, dy = y - lastTick.y;
-    if (dx * dx + dy * dy < 14 * 14) return;
-    lastTick = { x, y };
-    try {
-      const a = ac(), t = a.currentTime;
-      if (t - lastTickT < 0.032) return;
-      lastTickT = t;
-      // Square wave, X position selects note from scale
-      const xFrac = Math.max(0, Math.min(1, mx / SZ));
-      const freq = GRID_NOTES[Math.min(Math.floor(xFrac * GRID_NOTES.length), GRID_NOTES.length - 1)];
-      const o = a.createOscillator(), g = a.createGain();
-      o.connect(g); g.connect(a.destination);
-      o.type = 'square'; o.frequency.value = freq;
-      g.gain.setValueAtTime(0.026, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.038);
-      o.start(t); o.stop(t + 0.042);
-    } catch (_) {}
-  }
-
-  function playClick() {
-    try {
-      const a = ac(), t = a.currentTime;
-      // Noise burst explosion
-      const buf  = a.createBuffer(1, Math.floor(a.sampleRate * 0.18), a.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.28));
-      const src = a.createBufferSource(); src.buffer = buf;
-      const flt = a.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 800;
-      const gn  = a.createGain(); gn.gain.setValueAtTime(0.22, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-      src.connect(flt); flt.connect(gn); gn.connect(a.destination); src.start(t);
-
-      // Bass square drop
-      const o = a.createOscillator(), g2 = a.createGain();
-      o.connect(g2); g2.connect(a.destination);
-      o.type = 'square'; o.frequency.setValueAtTime(196, t);
-      o.frequency.exponentialRampToValueAtTime(22, t + 0.26);
-      g2.gain.setValueAtTime(0.14, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-      o.start(t); o.stop(t + 0.29);
-
-      // Shockwave arpeggio — G major power chord
-      [196, 294, 392, 523, 784].forEach((note, i) => {
-        const d = 0.16 + i * 0.052;
-        const o2 = a.createOscillator(), g3 = a.createGain();
-        o2.connect(g3); g3.connect(a.destination);
-        o2.type = 'square'; o2.frequency.value = note;
-        g3.gain.setValueAtTime(0.034, t + d);
-        g3.gain.exponentialRampToValueAtTime(0.001, t + d + 0.06);
-        o2.start(t + d); o2.stop(t + d + 0.065);
-      });
-    } catch (_) {}
+    if (dx * dx + dy * dy < 20 * 20) return;
+    const now = performance.now();
+    if (now - lastTickMs < 140) return;
+    lastTick = { x, y }; lastTickMs = now;
+    playHover();
   }
 
   (function loop() { update(); draw(); requestAnimationFrame(loop); })();
