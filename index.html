@@ -145,49 +145,58 @@
       const a = ac(), t = a.currentTime;
       if (t - lastTickT < 0.032) return;
       lastTickT = t;
-      // Game Boy laser blip — square wave descending, like a hit/zap SFX
-      const startFreq = 700 + Math.random() * 400;
+      // Precision alignment tick — brief sine, pitch from X position
+      const xFrac = Math.max(0, Math.min(1, mx / SZ));
+      const freq = 900 + xFrac * 900;
       const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
       o.connect(g); g.connect(a.destination);
-      o.type = 'square'; o.frequency.setValueAtTime(startFreq, t);
-      o.frequency.exponentialRampToValueAtTime(startFreq * 0.55, t + 0.038);
-      g.gain.setValueAtTime(0.034, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-      o.start(t); o.stop(t + 0.042);
+      g.gain.setValueAtTime(0.016, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.036);
+      o.start(t); o.stop(t + 0.04);
     } catch (_) {}
   }
 
   function playClick() {
     try {
       const a = ac(), t = a.currentTime;
-      // Game Boy explosion — noise burst + bass square drop + ascending confirm tail
-      const buf  = a.createBuffer(1, Math.floor(a.sampleRate * 0.18), a.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (data.length * 0.28));
-      const src = a.createBufferSource(); src.buffer = buf;
-      const flt = a.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 800;
-      const gn  = a.createGain(); gn.gain.setValueAtTime(0.22, t); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-      src.connect(flt); flt.connect(gn); gn.connect(a.destination); src.start(t);
 
-      // Bass drop square
-      const o = a.createOscillator(), g2 = a.createGain();
-      o.connect(g2); g2.connect(a.destination);
-      o.type = 'square'; o.frequency.setValueAtTime(180, t);
-      o.frequency.exponentialRampToValueAtTime(22, t + 0.26);
-      g2.gain.setValueAtTime(0.14, t);
-      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-      o.start(t); o.stop(t + 0.29);
+      // Impact crack — bandpass noise burst
+      const crLen = Math.floor(a.sampleRate * 0.028);
+      const crBuf = a.createBuffer(1, crLen, a.sampleRate);
+      const crData = crBuf.getChannelData(0);
+      for (let i = 0; i < crData.length; i++)
+        crData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (crLen * 0.2));
+      const crSrc = a.createBufferSource(); crSrc.buffer = crBuf;
+      const bpf = a.createBiquadFilter(); bpf.type = 'bandpass';
+      bpf.frequency.value = 1100; bpf.Q.value = 2;
+      const crG = a.createGain(); crG.gain.value = 0.22;
+      crSrc.connect(bpf); bpf.connect(crG); crG.connect(a.destination);
+      crSrc.start(t);
 
-      // Ascending confirm arpeggio after explosion
-      [330, 523, 784].forEach((note, i) => {
-        const d = 0.18 + i * 0.055;
-        const o2 = a.createOscillator(), g3 = a.createGain();
-        o2.connect(g3); g3.connect(a.destination);
-        o2.type = 'square'; o2.frequency.value = note;
-        g3.gain.setValueAtTime(0.038, t + d);
-        g3.gain.exponentialRampToValueAtTime(0.001, t + d + 0.065);
-        o2.start(t + d); o2.stop(t + d + 0.07);
-      });
+      // Mid punch — sine drop in audible range
+      const sub = a.createOscillator(), subG = a.createGain();
+      sub.type = 'sine';
+      sub.frequency.setValueAtTime(100, t);
+      sub.frequency.exponentialRampToValueAtTime(30, t + 0.2);
+      sub.connect(subG); subG.connect(a.destination);
+      subG.gain.setValueAtTime(0.001, t);
+      subG.gain.linearRampToValueAtTime(0.24, t + 0.005);
+      subG.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      sub.start(t); sub.stop(t + 0.23);
+
+      // Rotational ring — FM sine, long decay
+      const mod = a.createOscillator(), modG = a.createGain();
+      const ring = a.createOscillator(), ringG = a.createGain();
+      mod.frequency.value = 520; modG.gain.value = 85;
+      mod.connect(modG); modG.connect(ring.frequency);
+      ring.type = 'sine'; ring.frequency.value = 310;
+      ring.connect(ringG); ringG.connect(a.destination);
+      ringG.gain.setValueAtTime(0.001, t);
+      ringG.gain.linearRampToValueAtTime(0.07, t + 0.01);
+      ringG.gain.exponentialRampToValueAtTime(0.001, t + 0.60);
+      mod.start(t); ring.start(t);
+      mod.stop(t + 0.61); ring.stop(t + 0.61);
     } catch (_) {}
   }
 
