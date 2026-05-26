@@ -146,8 +146,8 @@
   let hoverAudio = null, clickAudio = null;
   function initAudio() {
     if (hoverAudio) return;
-    hoverAudio = new Audio('./sounds/hover.mp3');
-    hoverAudio.volume = 0.25;
+    hoverAudio = new Audio('./sounds/selection.mp3');
+    hoverAudio.volume = 0.06;
     clickAudio = new Audio('./sounds/selection.mp3');
     clickAudio.volume = 0.42;
   }
@@ -165,9 +165,9 @@
   let lastTick = { x: 0, y: 0 }, lastTickMs = 0;
   function maybeTick(x, y) {
     const dx = x - lastTick.x, dy = y - lastTick.y;
-    if (dx * dx + dy * dy < 20 * 20) return;
+    if (dx * dx + dy * dy < 48 * 48) return;
     const now = performance.now();
-    if (now - lastTickMs < 140) return;
+    if (now - lastTickMs < 220) return;
     lastTick = { x, y }; lastTickMs = now;
     playHover();
   }
