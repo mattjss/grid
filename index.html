@@ -39,8 +39,9 @@
   </div>
 <script>
   const SZ   = 422;
-  const COLS = 26, ROWS = 26;
-  const GAP  = SZ / COLS;
+  const COLS = 25, ROWS = 25;
+  const PAD  = 20;
+  const GAP  = (SZ - PAD * 2) / (COLS - 1);
   const LEN  = 9;
 
   const canvas = document.getElementById('c');
@@ -50,8 +51,8 @@
   const ticks = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      const x = (c + 0.5) * GAP;
-      const y = (r + 0.5) * GAP;
+      const x = PAD + c * GAP;
+      const y = PAD + r * GAP;
       ticks.push({ x, y, angle: Math.PI / 2, vel: 0 });
     }
   }
